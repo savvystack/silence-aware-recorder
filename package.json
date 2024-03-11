@@ -5,7 +5,8 @@
   "description": "Audio control with silence detection.",
   "main": "index.js",
   "scripts": {
-    "build": "tsup"
+    "build": "tsup",
+    "watch": "tsup --watch"
   },
   "keywords": [],
   "license": "ISC",
