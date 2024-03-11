@@ -67,9 +67,9 @@ class SilenceAwareRecorder {
     this.isRecording = false;
   }
 
-  async startRecording(): Promise<void> {
+  async startRecording(): Promise<MediaRecorder | null> {
     if (this.isRecording) {
-      return;
+      return this.mediaRecorder;
     }
 
     try {
@@ -78,8 +78,10 @@ class SilenceAwareRecorder {
       this.setupMediaRecorder(stream);
       this.isRecording = true;
       this.checkForSilence();
-    } catch (err) {
-      console.error('Error getting audio stream:', err);
+      return this.mediaRecorder;
+    } catch (err: any) {
+      console.error('Error getting audio stream: name=%s, message=%s', err.name, err.message);
+      throw err;
     }
   }
 
@@ -87,18 +89,17 @@ class SilenceAwareRecorder {
     const audioInputDevices = (await this.getAvailableDevices()).filter((device) => device.kind === 'audioinput');
 
     // throw an error if there is no audio input device
-    if (audioInputDevices.length === 0) throw new Error('nodevice');
+    if (audioInputDevices.length === 0) throw new DOMException('No audio input device', 'NotFoundError');
 
     // find out the default deviceId to start with
     if (!this.deviceId) {
       // if there is only one audio input device
       if (audioInputDevices.length === 1) this.deviceId = audioInputDevices[0].deviceId;
-      else {
-        // the default audio input device is '' on Safari, and 'default' on Chrome
-        audioInputDevices.forEach((inputDevice) => {
-          if (inputDevice.deviceId === 'default' || inputDevice.deviceId === '') this.deviceId = inputDevice.deviceId;
-        });
-      }
+      else this.deviceId = '';
+
+      // If microphone access is disabled on Chrome, it doesn't accept empty string as device name, or { audio: true }
+      // both will trigger an OverconstrainedError. We'd like a NotAllowed error instead.
+      if (navigator.userAgent.indexOf('Chrome') > 0 && this.deviceId === '') this.deviceId = 'default';
     }
 
     // eslint-disable-next-line no-undef
