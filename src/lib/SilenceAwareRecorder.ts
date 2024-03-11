@@ -67,10 +67,8 @@ class SilenceAwareRecorder {
     this.isRecording = false;
   }
 
-  async startRecording(): Promise<MediaRecorder | null> {
-    if (this.isRecording) {
-      return this.mediaRecorder;
-    }
+  async startRecording(): Promise<void> {
+    if (this.isRecording) return;
 
     try {
       const stream = await this.getAudioStream();
@@ -78,7 +76,6 @@ class SilenceAwareRecorder {
       this.setupMediaRecorder(stream);
       this.isRecording = true;
       this.checkForSilence();
-      return this.mediaRecorder;
     } catch (err: any) {
       console.error('Error getting audio stream: name=%s, message=%s', err.name, err.message);
       throw err;
