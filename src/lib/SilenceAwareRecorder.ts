@@ -39,7 +39,7 @@ class SilenceAwareRecorder {
 
   private hasSoundStarted: boolean;
 
-  public deviceId: string | null;
+  public deviceId: string | undefined;
 
   public isRecording: boolean;
 
@@ -49,7 +49,7 @@ class SilenceAwareRecorder {
     silenceDuration = 2500,
     silentThreshold = -50,
     minDecibels = -100,
-    deviceId = 'default',
+    deviceId,
   }: SilenceAwareRecorderOptions) {
     this.audioContext = null;
     this.mediaStreamSource = null;
@@ -84,9 +84,30 @@ class SilenceAwareRecorder {
   }
 
   private async getAudioStream(): Promise<MediaStream> {
+    const audioInputDevices = (await this.getAvailableDevices()).filter((device) => device.kind === 'audioinput');
+
+    // throw an error if there is no audio input device
+    if (audioInputDevices.length === 0) throw new Error('nodevice');
+
+    // find out the default deviceId to start with
+    if (!this.deviceId) {
+      // if there is only one audio input device
+      if (audioInputDevices.length === 1) this.deviceId = audioInputDevices[0].deviceId;
+      else {
+        // the default audio input device is '' on Safari, and 'default' on Chrome
+        audioInputDevices.forEach((inputDevice) => {
+          if (inputDevice.deviceId === 'default' || inputDevice.deviceId === '') this.deviceId = inputDevice.deviceId;
+        });
+      }
+    }
+
     // eslint-disable-next-line no-undef
     const constraints: MediaStreamConstraints = {
-      audio: this.deviceId ? { deviceId: { exact: this.deviceId } } : true,
+      audio: {
+        deviceId: {
+          exact: this.deviceId,
+        },
+      },
       video: false,
     };
 
